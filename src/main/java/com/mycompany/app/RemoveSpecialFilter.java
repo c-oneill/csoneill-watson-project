@@ -3,7 +3,6 @@ package com.mycompany.app;
 import org.apache.lucene.analysis.FilteringTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttributeImpl;
 
 import java.io.IOException;
 
@@ -22,8 +21,6 @@ public class RemoveSpecialFilter extends FilteringTokenFilter {
 
     @Override
     protected boolean accept() throws IOException {
-        if (charTermAttr.length() > 0 && !Character.isLetter(charTermAttr.charAt(0)))
-            return false;
-        return true;
+        return charTermAttr.length() <= 0 || Character.isLetter(charTermAttr.charAt(0));
     }
 }

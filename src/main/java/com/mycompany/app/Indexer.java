@@ -4,7 +4,6 @@ import edu.stanford.nlp.simple.Sentence;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.custom.CustomAnalyzer;
 import org.apache.lucene.document.*;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.similarities.BM25Similarity;
@@ -95,7 +94,9 @@ public class Indexer {
         // will have issues is file path includes spaces
         try (Scanner scanner = new Scanner(new File(classLoader.getResource(filePath).getFile()))) {
             String articleContent;
-            String title = ""; //debug
+            String title = "NO TITLE ASSIGNED";
+            String categories = "";
+
             String line;
             List<String> lineLemmas;
             StringBuilder sb = new StringBuilder();
@@ -105,7 +106,8 @@ public class Indexer {
                 lineLemmas = getLemmas(line);
 
                 if (lineLemmas == null) {
-                    continue;
+                    // continue
+
                 // if it's a title
                 } else if (lineLemmas.size() > 2
                         && lineLemmas.get(0).equals("[")
@@ -113,15 +115,16 @@ public class Indexer {
                     // add the last article as a doc to the index
                     // fixme: what if there is filler text to start the file?
                     articleContent = sb.toString();
-                    addDoc(title, articleContent);
+                    addDoc(title, articleContent, categories);
 
                     // start processing the next article
                     title = String.join(" ", lineLemmas);
                     sb = new StringBuilder();
 
-                // if it's a categories label
-                } else if (lineLemmas.size() > 0 && lineLemmas.get(0).equals("CATEGORIES")) {
-                    System.out.println(line);
+                // if it's a categories line
+                } else if (lineLemmas.size() > 0 && lineLemmas.get(0).equals("category")) {
+                    categories = String.join(" ", lineLemmas.subList(1, lineLemmas.size()));
+
                 // it's just a content line
                 } else {
                     sb.append(String.join(" ", lineLemmas));
@@ -145,10 +148,11 @@ public class Indexer {
         return s.lemmas();
     }
 
-    private void addDoc(String title, String content) throws IOException {
+    private void addDoc(String title, String content, String categories) throws IOException {
         Document doc = new Document();
-        doc.add(new TextField("title", title, Field.Store.YES)); // fixme: text or string field?
+        doc.add(new StringField("title", title, Field.Store.YES)); // fixme: text or string field?
         doc.add(new TextField("content", content, Field.Store.NO));
+        doc.add(new TextField("categories", categories, Field.Store.NO));
         indexWriter.addDocument(doc);
     }
 

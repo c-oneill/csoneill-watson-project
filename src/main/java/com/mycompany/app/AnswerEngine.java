@@ -79,11 +79,9 @@ public class AnswerEngine {
         }
     }
 
-
-//    private Document getDocById(String docID) {
-//        reader.document(docID)
-//    }
-
+    /*
+     * Notice the default field to search is content.
+     */
     private static Query buildQuery(String query) {
         try {
             return new QueryParser("content", analyzer).parse(query);
@@ -123,25 +121,25 @@ public class AnswerEngine {
             String indexFilePath = "testIndex";
             String inputFile = "wiki-example.txt";
 
-            Indexer indexer = new Indexer(indexFilePath);
-            indexer.addWikiFile(inputFile);
-            indexer.close();
+//            Indexer indexer = new Indexer(indexFilePath);
+//            indexer.addWikiFile(inputFile);
+//            indexer.close();
 
             AnswerEngine engine = new AnswerEngine(indexFilePath);
             //Query q1 = buildQuery("Products are commonly specified as meeting a particular British Standard");
-            Query q1 = buildQuery("arizona politician");
+            Query q1 = buildQuery("categories:arizona categories:politician");
             TopDocs result = engine.searchIndex(q1, 5);
             System.out.println("total hits: " + result.totalHits);
             for (ScoreDoc scoreDoc : result.scoreDocs) {
                 //System.out.println(engine.reader.document(scoreDoc.doc));
                 //System.out.println(engine.reader.document(scoreDoc.doc).getFields().get(1).fieldType().tokenized());
                 System.out.println(reanalyzeTitle(engine.reader.document(scoreDoc.doc).get("title")));
+                //System.out.println(engine.searcher.explain(q1, scoreDoc.doc));
             }
 
             engine.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 }
