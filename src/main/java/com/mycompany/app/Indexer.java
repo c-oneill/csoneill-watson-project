@@ -3,10 +3,8 @@ package com.mycompany.app;
 import edu.stanford.nlp.simple.Sentence;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.custom.CustomAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
+import org.apache.lucene.document.*;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.similarities.BM25Similarity;
@@ -17,6 +15,7 @@ import org.apache.lucene.store.FSDirectory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
@@ -28,8 +27,8 @@ import java.util.Scanner;
  */
 public class Indexer {
 
-    public static final Similarity similarity = new BM25Similarity();
-    public static final Analyzer analyzer = buildCustomAnalyzer();
+    private static Similarity similarity = new BM25Similarity();
+    private static Analyzer analyzer = buildCustomAnalyzer();
 
     private String indexDirPath;
     private IndexWriter indexWriter;
@@ -38,9 +37,9 @@ public class Indexer {
 
     private ClassLoader classLoader = getClass().getClassLoader();
 
-
     /*
-     * Pass the name and path of the new index.
+     * Pass the name and path of the new index. Path is relative to the
+     * working directory.
      */
     public Indexer(String indexDirPath) {
         this.indexDirPath = indexDirPath;
@@ -62,6 +61,22 @@ public class Indexer {
         }
     }
 
+    /*
+     * Build index from list of paths to aggregated wikipedia article files.
+     * Index writer is automatically closed.
+     */
+    public void buildIndex(List<String> filePaths) {
+        for (String filePath : filePaths) {
+            addWikiFile(filePath);
+        }
+        try {
+            close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // todo
     // write a fn that breaks up text with the analyzer, then makes lemmas with
     // CoreNLP, and then re-forms the text by joining with spaces. this function will
     // be used by the query parser too
@@ -71,6 +86,8 @@ public class Indexer {
      * down each file and adds each article as a separate document into the
      * index. Text is first turned into lemmas by CoreNLP before being passed
      * through the lucene whitespace analyzer.
+     *
+     * Put files in the resources folder.
      */
     public void addWikiFile(String filePath) {
         // break down with function mentioned above
@@ -102,6 +119,9 @@ public class Indexer {
                     title = String.join(" ", lineLemmas);
                     sb = new StringBuilder();
 
+                // if it's a categories label
+                } else if (lineLemmas.size() > 0 && lineLemmas.get(0).equals("CATEGORIES")) {
+                    System.out.println(line);
                 // it's just a content line
                 } else {
                     sb.append(String.join(" ", lineLemmas));
@@ -127,7 +147,7 @@ public class Indexer {
 
     private void addDoc(String title, String content) throws IOException {
         Document doc = new Document();
-        doc.add(new StringField("title", title, Field.Store.YES));
+        doc.add(new TextField("title", title, Field.Store.YES)); // fixme: text or string field?
         doc.add(new TextField("content", content, Field.Store.NO));
         indexWriter.addDocument(doc);
     }
@@ -144,6 +164,10 @@ public class Indexer {
         return directory;
     }
 
+    public static Similarity getSimilarity() {
+        return similarity;
+    }
+
     /*
      * Builds a custom analyzer. Splits into tokens on whitespace. Removes
      * stop words. Sets lowercase.
@@ -153,6 +177,7 @@ public class Indexer {
         try {
             a = CustomAnalyzer.builder()
                     .withTokenizer("whitespace")
+                    .addTokenFilter(RemoveSpecialFilterFactory.class, new HashMap<>())
                     .addTokenFilter("lowercase")
                     .addTokenFilter("stop")
                     .build();
@@ -174,7 +199,4 @@ public class Indexer {
 
         //System.out.println(TokenizerFactory.availableTokenizers());
     }
-
-    // fixme: add functionality to close the writer
-
 }
