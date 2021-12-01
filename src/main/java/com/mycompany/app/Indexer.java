@@ -88,11 +88,11 @@ public class Indexer {
      *
      * Put files in the resources folder.
      */
-    public void addWikiFile(String filePath) {
+    public void addWikiFile(File file) {
         // break down with function mentioned above
 
         // will have issues is file path includes spaces
-        try (Scanner scanner = new Scanner(new File(classLoader.getResource(filePath).getFile()))) {
+        try (Scanner scanner = new Scanner(file)) {
             String articleContent;
             String title = "NO TITLE ASSIGNED";
             String categories = "";
@@ -137,15 +137,26 @@ public class Indexer {
         }
     }
 
+    public void addWikiFile(String filePath) {
+        File file  = new File(classLoader.getResource(filePath).getFile());
+        addWikiFile(file);
+    }
+
     /*
      * Convert a string into a list of lemmas. If the input string is empty
      * or only spaces, returns null.
      */
     private List<String> getLemmas(String input) {
-        if (input.trim().isEmpty())
+        // todo: find cause of "unexpected empty sentence" so try-catch can be removed
+        try {
+            if (input.trim().isEmpty())
+                return null;
+            Sentence s = new Sentence(input);
+            return s.lemmas();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
             return null;
-        Sentence s = new Sentence(input);
-        return s.lemmas();
+        }
     }
 
     private void addDoc(String title, String content, String categories) throws IOException {

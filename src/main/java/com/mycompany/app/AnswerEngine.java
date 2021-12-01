@@ -60,18 +60,9 @@ public class AnswerEngine {
         }
     }
 
-    private TopDocs searchIndex(Query q, int n) {
-        //if (this.searcher == null) return null;
-        //List<ResultClass> resultList = new ArrayList<>();
+    public TopDocs searchIndex(Query q, int n) {
         try {
             TopDocs topDocs = this.searcher.search(q, n);
-//            // build the results list
-//            for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-//                ResultClass result = new ResultClass();
-//                result.DocName = searcher.doc(scoreDoc.doc);
-//                result.docScore = scoreDoc.score;
-//                resultList.add(result);
-//            }
             return topDocs;
         } catch (IOException e) {
             e.printStackTrace();
@@ -82,7 +73,7 @@ public class AnswerEngine {
     /*
      * Notice the default field to search is content.
      */
-    private static Query buildQuery(String query) {
+    public static Query buildQuery(String query) {
         try {
             return new QueryParser("content", analyzer).parse(query);
         } catch (ParseException e) {
@@ -97,6 +88,10 @@ public class AnswerEngine {
         reader.close();
     }
 
+    public DirectoryReader getReader() {
+        return this.reader;
+    }
+
     /*
      * I can't figure out how to store the tokenized and filtered text in
      * the title field, so this is the best workaround I can figure out for
@@ -104,7 +99,7 @@ public class AnswerEngine {
      * Takes inputText, re-analyzes converting into a token stream, and builds
      * a string.
      */
-    private static String reanalyzeTitle(String inputText) throws IOException {
+    public static String reanalyzeTitle(String inputText) throws IOException {
         StringJoiner sj = new StringJoiner(" ");
         TokenStream tokenStream = analyzer.tokenStream("title", inputText);
         CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
@@ -121,9 +116,9 @@ public class AnswerEngine {
             String indexFilePath = "testIndex";
             String inputFile = "wiki-example.txt";
 
-//            Indexer indexer = new Indexer(indexFilePath);
-//            indexer.addWikiFile(inputFile);
-//            indexer.close();
+            Indexer indexer = new Indexer(indexFilePath);
+            indexer.addWikiFile(inputFile);
+            indexer.close();
 
             AnswerEngine engine = new AnswerEngine(indexFilePath);
             //Query q1 = buildQuery("Products are commonly specified as meeting a particular British Standard");
