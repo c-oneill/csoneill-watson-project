@@ -113,7 +113,7 @@ public class AnswerEngine {
 
     public static void main(String[] args) {
         try {
-            String indexFilePath = "testIndex";
+            String indexFilePath = "testIndex2";
             String inputFile = "wiki-example.txt";
 
             Indexer indexer = new Indexer(indexFilePath);
@@ -122,13 +122,16 @@ public class AnswerEngine {
 
             AnswerEngine engine = new AnswerEngine(indexFilePath);
             //Query q1 = buildQuery("Products are commonly specified as meeting a particular British Standard");
-            Query q1 = buildQuery("categories:arizona categories:politician");
+            String query = "red hat";
+            //String query = "categories:arizona categories:politician";
+            Query q1 = buildQuery(query);
             TopDocs result = engine.searchIndex(q1, 5);
             System.out.println("total hits: " + result.totalHits);
+            String printLine;
             for (ScoreDoc scoreDoc : result.scoreDocs) {
-                //System.out.println(engine.reader.document(scoreDoc.doc));
-                //System.out.println(engine.reader.document(scoreDoc.doc).getFields().get(1).fieldType().tokenized());
-                System.out.println(reanalyzeTitle(engine.reader.document(scoreDoc.doc).get("title")));
+                printLine = engine.reader.document(scoreDoc.doc).get("title");
+                System.out.println(reanalyzeTitle(printLine));
+                System.out.println(printLine.substring(2, printLine.length() - 2));
                 //System.out.println(engine.searcher.explain(q1, scoreDoc.doc));
             }
 

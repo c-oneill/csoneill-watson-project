@@ -21,17 +21,18 @@ public class AnswerPlatform {
 
     private AnswerEngine engine;
     private String queryFilePath;
-    private boolean open; // true if open, false if write
+    private boolean write; // true if open, false if write
 
-    public AnswerPlatform(String indexFilePath, String queryFilePath, String dataFolder, boolean open) {
+    public AnswerPlatform(String indexFilePath, String queryFilePath, String dataFolder, boolean write) {
         this.queryFilePath = queryFilePath;
         try {
-            if (!open) { // writing a new index
+            if (write) { // writing a new index
                 Indexer indexer = new Indexer(indexFilePath);
 
                 ClassLoader classLoader = getClass().getClassLoader();
                 File dataFolderFile = new File(classLoader.getResource(dataFolder).getFile());
                 File[] dataFileList = dataFolderFile.listFiles();
+                assert dataFileList != null;
                 for (File dataFile : dataFileList) {
                     indexer.addWikiFile(dataFile);
                 }
@@ -53,8 +54,10 @@ public class AnswerPlatform {
     public void printResults(TopDocs result) {
         try {
             System.out.println("total hits: " + result.totalHits);
+            String printLine;
             for (ScoreDoc scoreDoc : result.scoreDocs) {
-                System.out.println(AnswerEngine.reanalyzeTitle(engine.getReader().document(scoreDoc.doc).get("title")));
+                printLine = engine.getReader().document(scoreDoc.doc).get("title");
+                System.out.println(printLine.substring(2, printLine.length() - 2));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -64,12 +67,13 @@ public class AnswerPlatform {
 
     public static void main(String[] args) {
         // todo: code to loop through and process args
-        String indexFilePath = "testIndex";
+        String indexFilePath = "WikiIndex";
         String queryFilePath = "questions.txt";
         String dataFolder =  "wiki-subset-20140602";
 
+        AnswerPlatform platform = new AnswerPlatform(indexFilePath, queryFilePath, dataFolder,true);
         String query = "categories:arizona categories:politician";
-        AnswerPlatform platform = new AnswerPlatform(indexFilePath, queryFilePath, dataFolder,false);
+        //String query = "just trying things out";
         TopDocs result = platform.searchQuery(query, 10);
         platform.printResults(result);
     }
