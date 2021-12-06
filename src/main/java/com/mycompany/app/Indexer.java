@@ -13,6 +13,7 @@ import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.LMJelinekMercerSimilarity;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -25,18 +26,21 @@ import java.util.*;
 /*
  * A class to build and save the index.
  *
- * todo notes:
- *  add a special field for topic titles in articles?
  */
 public class Indexer {
 
     private static Similarity similarity = new BM25Similarity();
-    private static Analyzer analyzer = buildCustomAnalyzer();
+    //private static Similarity similarity = new LMJelinekMercerSimilarity(0.1F);
+    private Analyzer analyzer;
 
     private String indexDirPath;
     private IndexWriter indexWriter;
     private IndexWriterConfig config;
     private Directory directory;
+
+    private final boolean stem;
+    private final boolean lemmatize;
+    private final boolean stopwords;
 
     private AnnotationPipeline pipeline;
 
@@ -46,7 +50,12 @@ public class Indexer {
      * Pass the name and path of the new index. Path is relative to the
      * working directory.
      */
-    public Indexer(String indexDirPath) {
+    public Indexer(String indexDirPath, boolean stem, boolean lemmatize, boolean stopwords) {
+        this.stem = stem;
+        this.lemmatize = lemmatize;
+        this.stopwords = stopwords;
+
+        this.analyzer = buildCustomAnalyzer(this.stem, this.stopwords);
         StanfordLemmatizer();
         this.indexDirPath = indexDirPath;
         try {
@@ -83,68 +92,6 @@ public class Indexer {
         }
     }
 
-    // todo
-    // write a fn that breaks up text with the analyzer, then makes lemmas with
-    // CoreNLP, and then re-forms the text by joining with spaces. this function will
-    // be used by the query parser too
-
-    /*
-     * Takes the processed file that contains many wikipedia articles. Breaks
-     * down each file and adds each article as a separate document into the
-     * index. Text is first turned into lemmas by CoreNLP before being passed
-     * through the lucene whitespace analyzer.
-     *
-     * Put files in the resources folder.
-     */
-    public void addWikiFile2(File file) {
-        // break down with function mentioned above
-
-        // will have issues is file path includes spaces
-        try (Scanner scanner = new Scanner(file)) {
-            String articleContent;
-            String title = "NO TITLE ASSIGNED";
-            String categories = "";
-
-            String line;
-            List<String> lineLemmas;
-            StringBuilder sb = new StringBuilder();
-
-            while(scanner.hasNextLine()) {
-                line = scanner.nextLine();
-                lineLemmas = getLemmas(line);
-
-                if (lineLemmas == null) {
-                    // continue
-
-                // if it's a title
-                } else if (lineLemmas.size() > 2
-                        && lineLemmas.get(0).equals("[")
-                        && lineLemmas.get(1).equals("[")) {
-                    // add the last article as a doc to the index
-                    // fixme: what if there is filler text to start the file?
-                    articleContent = sb.toString();
-                    addDoc(title, articleContent, categories);
-
-                    // start processing the next article
-                    title = String.join(" ", lineLemmas);
-                    sb = new StringBuilder();
-
-                // if it's a categories line
-                } else if (lineLemmas.size() > 0 && lineLemmas.get(0).equals("category")) {
-                    categories = String.join(" ", lineLemmas.subList(1, lineLemmas.size()));
-
-                // it's just a content line
-                } else {
-                    sb.append(String.join(" ", lineLemmas));
-                }
-            }
-        } catch (IOException e) {
-            // handle FileNotFoundException for File()
-            // handle IOException from addDoc()
-            e.printStackTrace();
-        }
-    }
-
     /*
      * Takes the processed file that contains many wikipedia articles. Breaks
      * down each file and adds each article as a separate document into the
@@ -176,9 +123,14 @@ public class Indexer {
                     // add the last article as a doc to the index
                     // fixme: what if there is filler text to start the file?
                     articleContent = sb.toString();
-                    List<String> articleLemmas = lemmatize(articleContent);
-                    if (articleLemmas != null)
-                        addDoc(title, String.join(" ", articleLemmas), categories);
+
+                    if (lemmatize) {
+                        List<String> articleLemmas = lemmatize(articleContent);
+                        if (articleLemmas != null)
+                            addDoc(title, String.join(" ", articleLemmas), categories);
+                    } else {
+                        addDoc(title, articleContent, categories);
+                    }
 
                     // start processing the next article
                     title = line;
@@ -186,8 +138,12 @@ public class Indexer {
 
                     // if it's a categories line
                 } else if (line.startsWith("CATEGORIES:")) {
-                    List<String> catLemmas = lemmatize(line);
-                    categories = String.join(" ", catLemmas.subList(1, catLemmas.size()));
+                    if (lemmatize) {
+                        List<String> catLemmas = lemmatize(line);
+                        categories = String.join(" ", catLemmas.subList(1, catLemmas.size()));
+                    } else {
+                        categories = line.substring(11);
+                    }
 
                     // it's just a content line
                 } else {
@@ -285,7 +241,7 @@ public class Indexer {
 
     private void addDoc(String title, String content, String categories) throws IOException {
         Document doc = new Document();
-        doc.add(new StringField("title", title, Field.Store.YES)); // fixme: text or string field?
+        doc.add(new StringField("title", title, Field.Store.YES));
         doc.add(new TextField("content", content, Field.Store.NO));
         doc.add(new TextField("categories", categories, Field.Store.NO));
         indexWriter.addDocument(doc);
@@ -311,24 +267,25 @@ public class Indexer {
      * Builds a custom analyzer. Splits into tokens on non-letters. Removes
      * stop words. Sets lowercase.
      */
-    public static Analyzer buildCustomAnalyzer() {
-        Analyzer a = null;
+    public static Analyzer buildCustomAnalyzer(boolean stem, boolean stopwords) {
+        CustomAnalyzer.Builder a = null;
         try {
             a = CustomAnalyzer.builder()
-                    .withTokenizer("lowercase") // combines LetterTokenizer and lowercase filter
+                    .withTokenizer("standard") // combines LetterTokenizer and lowercase filter
                     //.addTokenFilter(RemoveSpecialFilterFactory.class, new HashMap<>())
-                    //.addTokenFilter("lowercase")
-                    .addTokenFilter("stop")
-                    .build();
+                    .addTokenFilter("lowercase");
+            if (!stopwords)
+                a.addTokenFilter("stop");
+            if (stem)
+                a.addTokenFilter("porterStem");
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return a;
+        return a.build();
     }
 
     public static void main(String[] args ) {
-        // todo: some tests to see how the coreMLP lemmas look on the wiki data example
-        Indexer indexer = new Indexer("testIndex");
+        Indexer indexer = new Indexer("testIndex2", false, false, false);
         indexer.addWikiFile("wiki-example.txt");
         try {
             indexer.close();
