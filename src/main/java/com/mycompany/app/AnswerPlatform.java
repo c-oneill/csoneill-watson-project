@@ -3,6 +3,8 @@ package com.mycompany.app;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.Similarity;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,15 +18,14 @@ import java.io.IOException;
 public class AnswerPlatform {
 
     private AnswerEngine engine;
-    private boolean write; // true if open, false if write
 
-    public AnswerPlatform(String indexFilePath, String dataFolder, boolean write, boolean stem, boolean lemmatize, boolean stopwords) {
+    public AnswerPlatform(String indexFilePath, String dataFolder, boolean write, boolean stem,
+                          boolean lemmatize, boolean stopwords, Similarity s) {
         try {
             if (write) { // writing a new index
-                Indexer indexer = new Indexer(indexFilePath, stem, lemmatize, stopwords);
+                Indexer indexer = new Indexer(indexFilePath, stem, lemmatize, stopwords, s);
 
-                ClassLoader classLoader = getClass().getClassLoader();
-                File dataFolderFile = new File(classLoader.getResource(dataFolder).getFile());
+                File dataFolderFile = new File("src/main/resources/" + dataFolder);
                 File[] dataFileList = dataFolderFile.listFiles();
                 assert dataFileList != null;
                 for (File dataFile : dataFileList) {
@@ -32,7 +33,7 @@ public class AnswerPlatform {
                 }
                 indexer.close();
             }
-            this.engine = new AnswerEngine(indexFilePath, stem, lemmatize, stopwords);
+            this.engine = new AnswerEngine(indexFilePath, stem, lemmatize, stopwords, s);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -118,7 +119,8 @@ public class AnswerPlatform {
         String queryFilePath = "questions.txt";
         String dataFolder =  "wiki-subset-20140602";
 
-        AnswerPlatform platform = new AnswerPlatform(indexFilePath, dataFolder,false, false, false, false);
+        AnswerPlatform platform = new AnswerPlatform(indexFilePath, dataFolder,false, false, false,
+                false, new BM25Similarity());
         //String query = "categories:arizona categories:politician";
         //String query = "The dominant paper in our nation's capital, it's among the top 10 U.S. papers in circulation";
         //String content = "Daniel Hertzberg & James B. Stewart of this paper shared a 1988 Pulitzer for their stories about insider trading";

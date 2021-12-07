@@ -29,7 +29,7 @@ import java.util.*;
  */
 public class Indexer {
 
-    private static Similarity similarity = new BM25Similarity();
+    private final Similarity similarity;// = new BM25Similarity();
     //private static Similarity similarity = new LMJelinekMercerSimilarity(0.1F);
     private Analyzer analyzer;
 
@@ -44,13 +44,12 @@ public class Indexer {
 
     private AnnotationPipeline pipeline;
 
-    private ClassLoader classLoader = getClass().getClassLoader();
-
     /*
      * Pass the name and path of the new index. Path is relative to the
      * working directory.
      */
-    public Indexer(String indexDirPath, boolean stem, boolean lemmatize, boolean stopwords) {
+    public Indexer(String indexDirPath, boolean stem, boolean lemmatize, boolean stopwords, Similarity s) {
+        this.similarity = s;
         this.stem = stem;
         this.lemmatize = lemmatize;
         this.stopwords = stopwords;
@@ -209,7 +208,7 @@ public class Indexer {
     }
 
     public void addWikiFile(String filePath) {
-        File file  = new File(classLoader.getResource(filePath).getFile());
+        File file = new File("src/main/resources/" + filePath);
         addWikiFile(file);
     }
 
@@ -259,7 +258,7 @@ public class Indexer {
         return directory;
     }
 
-    public static Similarity getSimilarity() {
+    public Similarity getSimilarity() {
         return similarity;
     }
 
@@ -285,7 +284,7 @@ public class Indexer {
     }
 
     public static void main(String[] args ) {
-        Indexer indexer = new Indexer("testIndex2", false, false, false);
+        Indexer indexer = new Indexer("testIndex2", false, false, false, new BM25Similarity());
         indexer.addWikiFile("wiki-example.txt");
         try {
             indexer.close();

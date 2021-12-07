@@ -24,7 +24,7 @@ import java.util.StringJoiner;
  *
  */
 public class AnswerEngine {
-    private static final Similarity similarity = new BM25Similarity();
+    private final Similarity similarity;// = new BM25Similarity();
     //private static Similarity similarity = new LMJelinekMercerSimilarity(0.1F);
     private final Analyzer analyzer;
 
@@ -39,10 +39,11 @@ public class AnswerEngine {
     /*
      * Construct an answer engine from an input filepath.
      */
-    public AnswerEngine(String dirFilePath, boolean stem, boolean lemmatize, boolean stopwords) {
+    public AnswerEngine(String dirFilePath, boolean stem, boolean lemmatize, boolean stopwords, Similarity s) {
         this.stem = stem;
         this.lemmatize = lemmatize;
         this.stopwords = stopwords;
+        this.similarity = s;
 
         analyzer = Indexer.buildCustomAnalyzer(this.stem, this.stopwords);
         try {
@@ -59,10 +60,11 @@ public class AnswerEngine {
     /*
      * Construct an answer engine from a Directory.
      */
-    public AnswerEngine(Directory directory, boolean stem, boolean lemmatize, boolean stopwords) {
+    public AnswerEngine(Directory directory, boolean stem, boolean lemmatize, boolean stopwords, Similarity s) {
         this.stem = stem;
         this.lemmatize = lemmatize;
         this.stopwords = stopwords;
+        this.similarity = s;
 
         analyzer = Indexer.buildCustomAnalyzer(this.stem, this.stopwords);
         try {
@@ -179,11 +181,13 @@ public class AnswerEngine {
             String indexFilePath = "testIndex2";
             String inputFile = "wiki-example.txt";
 
-            Indexer indexer = new Indexer(indexFilePath, stem, lemmatize, stopwords);
+            Similarity s  = new BM25Similarity();
+
+            Indexer indexer = new Indexer(indexFilePath, stem, lemmatize, stopwords, s);
             indexer.addWikiFile(inputFile);
             indexer.close();
 
-            AnswerEngine engine = new AnswerEngine(indexFilePath, stem, lemmatize, false);
+            AnswerEngine engine = new AnswerEngine(indexFilePath, stem, lemmatize, stopwords, s);
             //Query q1 = buildQuery("Products are commonly specified as meeting a particular British Standard");
             String query = "red hat";
             //String query = "categories:arizona categories:politician";
