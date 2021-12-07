@@ -40,14 +40,50 @@ Indices:
 
     `java -jar target/csoneill-watson-project-1.0-SNAPSHOT-jar-with-dependencies.jar JMStemIndex true false true JMLM`
 
-6. LemmaIndex
+6. TFIDFStemIndex
+
+    stemming, no lemmatization, stopwords kept, TF-IDF similarity
+
+    `java -jar target/csoneill-watson-project-1.0-SNAPSHOT-jar-with-dependencies.jar JMStemIndex true false true TFIDF`  
+
+7. LemmaIndex
 
     no stemming, lemmatization, stopwords kept, BM25 cosine similarity
 
     `java -jar target/csoneill-watson-project-1.0-SNAPSHOT-jar-with-dependencies.jar LemmaIndex false true true BM25`
 
-7. LemmaNoStopIndex
+8. LemmaNoStopIndex
 
     no stemming, lemmatization, stopwords removed, BM25 cosine similarity
 
     `java -jar target/csoneill-watson-project-1.0-SNAPSHOT-jar-with-dependencies.jar LemmaNoStopIndex false true false BM25`
+
+
+
+Classes:
+
+Indexer
+    
+    Builds and writes the index to disk.
+
+AnswerEngine
+
+    Main logic behind search, query building, and CustomAnalyzer.
+
+AnswerPlatform
+
+    Brings Indexer and AnswerEngine together in one platform.
+
+AnswerPlatformRun
+
+    Parses and runs the provided Jeopardy clues on an Answer Platform. Calculates and prints the performance measurements.
+
+RemoveSpecialFilter, RemoveSpecialFilterFactory
+
+    Unused. Provides template for a custom token removal filter.
+
+
+
+
+
+

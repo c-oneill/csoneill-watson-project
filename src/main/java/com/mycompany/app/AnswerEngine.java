@@ -136,7 +136,7 @@ public class AnswerEngine {
         String[] replaceChars = { "\""};
         for (String c : replaceChars) {
             if (input.contains(c)) {
-                //input = input.replace(c, "\\" + c);
+                input = input.replace(c, "\\" + c);
             }
         }
         return input;

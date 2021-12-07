@@ -12,7 +12,7 @@ import java.io.IOException;
 /*
  * Main platform for Indexing and using the Answer Engine.
  *
- * Wiki data file folder should be expanded in the resources folder
+ * Wiki data file folder should be expanded in the resources folder.
  *
  */
 public class AnswerPlatform {
@@ -55,13 +55,16 @@ public class AnswerPlatform {
         return engine.searchIndex(q1, hits);
     }
 
-    public void printResults(TopDocs result) {
+    public void printResults(TopDocs result, int num) {
         try {
             System.out.println("total hits: " + result.totalHits);
             String printLine;
+            int count = 0;
             for (ScoreDoc scoreDoc : result.scoreDocs) {
+                if (count > num) break;
                 printLine = engine.getReader().document(scoreDoc.doc).get("title");
                 System.out.println(printLine.substring(2, printLine.length() - 2));
+                count++;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -133,6 +136,6 @@ public class AnswerPlatform {
         System.out.println(q);
         TopDocs result = platform.searchQuery(content, categories, 20);
         //TopDocs result = platform.searchQuery(query, 20);
-        platform.printResults(result);
+        platform.printResults(result, 20);
     }
 }

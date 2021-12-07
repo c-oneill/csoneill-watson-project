@@ -13,7 +13,6 @@ import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.similarities.BM25Similarity;
-import org.apache.lucene.search.similarities.LMJelinekMercerSimilarity;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -25,12 +24,10 @@ import java.util.*;
 
 /*
  * A class to build and save the index.
- *
  */
 public class Indexer {
 
-    private final Similarity similarity;// = new BM25Similarity();
-    //private static Similarity similarity = new LMJelinekMercerSimilarity(0.1F);
+    private final Similarity similarity;
     private Analyzer analyzer;
 
     private String indexDirPath;
